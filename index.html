@@ -134,14 +134,12 @@
     padding: 4px;
     font-size: 14px;
   }
-
 </style>
 </head>
 <body>
 
 <h1>WishLizzt®</h1>
 
-<!-- Manual input -->
 <div class="input-group">
   <input type="text" id="productLink" placeholder="Paste link here">
   <input type="text" id="productName" placeholder="Enter product name">
@@ -150,10 +148,10 @@
   <button onclick="addProduct()">Add</button>
 </div>
 
-<!-- CSV import -->
 <div class="input-group">
   <input type="file" id="csvFile" accept=".csv">
   <button id="importBtn">Import CSV</button>
+  <button id="exportBtn">Export CSV</button>
 </div>
 
 <table>
@@ -182,12 +180,10 @@
 <script>
 let wishlist = [];
 
-// Format numbers nicely
 function formatPrice(num) {
   return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-// Load from localStorage
 window.onload = () => {
   const saved = localStorage.getItem('wishlist');
   if (saved) {
@@ -196,7 +192,6 @@ window.onload = () => {
   }
 };
 
-// Add product
 function addProduct(product = null) {
   let link, name, price, quantity;
 
@@ -217,9 +212,8 @@ function addProduct(product = null) {
     return;
   }
 
-  name = name.replace(/,+$/,''); // remove trailing commas
+  name = name.replace(/,+$/,'');
 
-  // Check duplicates
   const existing = wishlist.find(p => p.link === link);
   if (existing) {
     existing.quantity += quantity;
@@ -241,7 +235,6 @@ function addProduct(product = null) {
   }
 }
 
-// Render entire wishlist
 function renderWishlist() {
   const tbody = document.getElementById('wishlistBody');
   const previewContainer = document.getElementById('previews');
@@ -255,82 +248,39 @@ function renderWishlist() {
     totalPrice += product.price * product.quantity;
     totalQty += product.quantity;
 
-    // Table row
     const row = document.createElement('tr');
-    row.dataset.link = product.link;
 
-    const nameCell = document.createElement('td');
-    nameCell.textContent = product.name;
+    row.innerHTML = `
+      <td>${product.name}</td>
+      <td><a href="${product.link}" target="_blank">View Product</a></td>
+      <td>${formatPrice(product.price)}</td>
+      <td><input type="number" min="1" value="${product.quantity}"></td>
+      <td><button class="remove-btn">Remove</button></td>
+    `;
 
-    const linkCell = document.createElement('td');
-    const a = document.createElement('a');
-    a.href = product.link.startsWith('http') ? product.link : 'https://' + product.link;
-    a.textContent = "View Product";
-    a.target = "_blank";
-    linkCell.appendChild(a);
-
-    const priceCell = document.createElement('td');
-    priceCell.textContent = formatPrice(product.price);
-
-    const qtyCell = document.createElement('td');
-    const qtyInput = document.createElement('input');
-    qtyInput.type = 'number';
-    qtyInput.min = 1;
-    qtyInput.value = product.quantity;
-    qtyInput.className = 'qty-input';
-    qtyInput.oninput = () => {
-      const val = parseInt(qtyInput.value);
-      product.quantity = isNaN(val) || val < 1 ? 1 : val;
+    row.querySelector('input').oninput = e => {
+      product.quantity = Math.max(1, parseInt(e.target.value) || 1);
       renderWishlist();
     };
-    qtyCell.appendChild(qtyInput);
 
-    const removeCell = document.createElement('td');
-    const removeBtn = document.createElement('button');
-    removeBtn.textContent = "Remove";
-    removeBtn.className = "remove-btn";
-    removeBtn.onclick = () => {
-      wishlist = wishlist.filter(p => p.link !== product.link);
+    row.querySelector('button').onclick = () => {
+      wishlist = wishlist.filter(p => p !== product);
       renderWishlist();
     };
-    removeCell.appendChild(removeBtn);
 
-    row.appendChild(nameCell);
-    row.appendChild(linkCell);
-    row.appendChild(priceCell);
-    row.appendChild(qtyCell);
-    row.appendChild(removeCell);
     tbody.appendChild(row);
 
-    // Preview card
-    const previewDiv = document.createElement('div');
-    previewDiv.className = 'preview-card';
-    previewDiv.dataset.link = product.link;
-
-    const qtyDropdown = document.createElement('select');
-    qtyDropdown.className = 'qty-dropdown';
-    for (let i = 1; i <= 100; i++) {
-      const opt = document.createElement('option');
-      opt.value = i;
-      opt.textContent = i;
-      if (i === product.quantity) opt.selected = true;
-      qtyDropdown.appendChild(opt);
-    }
-    qtyDropdown.onchange = () => {
-      product.quantity = parseInt(qtyDropdown.value);
-      renderWishlist();
-    };
-
-    previewDiv.innerHTML = `
-      ${product.imageUrl ? `<img src="${product.imageUrl}" alt="${product.name}">` : ''}
+    const preview = document.createElement('div');
+    preview.className = 'preview-card';
+    preview.innerHTML = `
+      ${product.imageUrl ? `<img src="${product.imageUrl}">` : ''}
       <div>
         <strong>${product.name}</strong>
         <span>$${formatPrice(product.price)}</span>
-        <a href="${product.link.startsWith('http') ? product.link : 'https://' + product.link}" target="_blank">View</a>
+        <a href="${product.link}" target="_blank">View</a>
       </div>
     `;
-    previewDiv.appendChild(qtyDropdown);
-    previewContainer.appendChild(previewDiv);
+    previewContainer.appendChild(preview);
   });
 
   document.getElementById('totalPrice').textContent = formatPrice(totalPrice);
@@ -338,35 +288,45 @@ function renderWishlist() {
   localStorage.setItem('wishlist', JSON.stringify(wishlist));
 }
 
-// CSV import for your format
+/* ✅ UPDATED CSV IMPORT: Name, Price, Link, Quantity */
 document.getElementById('importBtn').addEventListener('click', () => {
-  const fileInput = document.getElementById('csvFile');
-  const file = fileInput.files[0];
+  const file = document.getElementById('csvFile').files[0];
   if (!file) return alert("Please select a CSV file.");
 
   const reader = new FileReader();
-  reader.onload = function(e) {
-    const text = e.target.result;
-    const lines = text.split(/\r?\n/).filter(l => l.trim());
-
-    if (!lines.length) return alert("CSV is empty.");
+  reader.onload = e => {
+    const lines = e.target.result.split(/\r?\n/).filter(l => l.trim());
+    lines.shift(); // remove header
 
     lines.forEach(line => {
-      const priceMatch = line.match(/\$\s*([0-9,.]+)/);
-      if (!priceMatch) return;
-
-      const price = parseFloat(priceMatch[1].replace(/,/g, ''));
-      const parts = line.split(priceMatch[0]);
-      const name = parts[0].trim().replace(/,+$/,'');
-      const link = parts[1] ? parts[1].trim() : '';
-      if (name && !isNaN(price) && link) {
-        addProduct({ name, price, link, quantity: 1 });
+      const [name, price, link, quantity] = line.split(',');
+      if (name && price && link) {
+        addProduct({
+          name: name.trim(),
+          price: parseFloat(price),
+          link: link.trim(),
+          quantity: parseInt(quantity) || 1
+        });
       }
     });
-
-    fileInput.value = '';
   };
   reader.readAsText(file);
+});
+
+/* ✅ EXPORT CSV BUTTON */
+document.getElementById('exportBtn').addEventListener('click', () => {
+  let csv = "Name,Price,Link,Quantity\n";
+  wishlist.forEach(p => {
+    csv += `"${p.name}",${p.price},"${p.link}",${p.quantity}\n`;
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'wishlist.csv';
+  a.click();
+  URL.revokeObjectURL(url);
 });
 </script>
 
