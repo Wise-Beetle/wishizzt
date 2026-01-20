@@ -1,6 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
+  
+
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Wishlizzt</title>
@@ -56,9 +59,36 @@
   }
 
   .list-menu {
+    position: relative;
     cursor: pointer;
+    padding: 0 6px;
     font-weight: bold;
-    padding-left: 5px;
+  }
+
+  .list-tooltip {
+    position: absolute;
+    right: 0;
+    top: 18px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    z-index: 1000;
+    min-width: 120px;
+  }
+
+  .list-tooltip button {
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 8px 10px;
+    text-align: left;
+    cursor: pointer;
+    font-size: 14px;
+  }
+
+  .list-tooltip button:hover {
+    background-color: #f4f4f4;
   }
 
   /* Main content area */
@@ -193,39 +223,55 @@
     font-size: 14px;
   }
 
-  .list-menu {
-  position: relative;
-  cursor: pointer;
-  padding: 0 6px;
-  font-weight: bold;
-}
+  /* CSV floating menu */
+  #csvMenu {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 3000;
+  }
 
-.list-tooltip {
-  position: absolute;
-  right: 0;
-  top: 18px;
-  background: white;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-  z-index: 1000;
-  min-width: 120px;
-}
+  #csvMenuBtn {
+    background-color: #FF9900;
+    color: white;
+    border: none;
+    border-radius: 28px;
+    padding: 12px 18px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  }
 
-.list-tooltip button {
-  width: 100%;
-  background: none;
-  border: none;
-  padding: 8px 10px;
-  text-align: left;
-  cursor: pointer;
-  font-size: 14px;
-}
+  #csvMenuBtn:hover {
+    background-color: #e68a00;
+  }
 
-.list-tooltip button:hover {
-  background-color: #f4f4f4;
-}
+  #csvMenuOptions {
+    position: absolute;
+    bottom: 56px;
+    right: 0;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 6px 14px rgba(0,0,0,0.2);
+    overflow: hidden;
+    min-width: 180px;
+    display: none;
+  }
 
+  #csvMenuOptions button {
+    width: 100%;
+    border: none;
+    background: none;
+    padding: 12px 16px;
+    text-align: left;
+    cursor: pointer;
+    font-size: 15px;
+  }
+
+  #csvMenuOptions button:hover {
+    background-color: #f4f4f4;
+  }
 
 </style>
 </head>
@@ -238,49 +284,81 @@
 </div>
 
 <div id="mainContent">
-<h1>WishLizzt®</h1>
+  <h1>WishLizzt®</h1>
 
-<!-- Manual input -->
-<div class="input-group">
-  <input type="text" id="productLink" placeholder="Paste link here">
-  <input type="text" id="productName" placeholder="Enter product name">
-  <input type="number" id="productPrice" placeholder="Enter price (USD)">
-  <input type="number" id="productQuantity" placeholder="Quantity" value="1" min="1">
-  <button onclick="addProduct()">Add</button>
+  <!-- Manual input -->
+  <div class="input-group">
+    <input type="text" id="productLink" placeholder="Paste link here">
+    <input type="text" id="productName" placeholder="Enter product name">
+    <input type="number" id="productPrice" placeholder="Enter price (USD)">
+    <input type="number" id="productQuantity" placeholder="Quantity" value="1" min="1">
+    <button onclick="addProduct()">Add</button>
+  </div>
+
+  <!-- Hidden file input for CSV -->
+  <input type="file" id="csvFile" accept=".csv" style="display:none">
+  <button id="exportBtn" style="display:none"></button>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Product</th>
+        <th>Link</th>
+        <th>Price (USD)</th>
+        <th>Quantity</th>
+        <th>Remove</th>
+      </tr>
+    </thead>
+    <tbody id="wishlistBody"></tbody>
+    <tfoot>
+      <tr>
+        <td colspan="2">Total</td>
+        <td id="totalPrice">0.00</td>
+        <td id="totalQuantity">0</td>
+        <td></td>
+      </tr>
+    </tfoot>
+  </table>
+
+  <div id="previews"></div>
 </div>
 
-<!-- CSV import/export -->
-<div class="input-group">
-  <input type="file" id="csvFile" accept=".csv">
-  <button id="importBtn">Import CSV</button>
-  <button id="exportBtn">Export CSV</button>
-</div>
-
-<table>
-  <thead>
-    <tr>
-      <th>Product</th>
-      <th>Link</th>
-      <th>Price (USD)</th>
-      <th>Quantity</th>
-      <th>Remove</th>
-    </tr>
-  </thead>
-  <tbody id="wishlistBody"></tbody>
-  <tfoot>
-    <tr>
-      <td colspan="2">Total</td>
-      <td id="totalPrice">0.00</td>
-      <td id="totalQuantity">0</td>
-      <td></td>
-    </tr>
-  </tfoot>
-</table>
-
-<div id="previews"></div>
+<!-- CSV floating menu -->
+<div id="csvMenu">
+  <button id="csvMenuBtn" title="Import / Export CSV">
+    📁 CSV
+  </button>
+  <div id="csvMenuOptions">
+    <button id="csvImportBtn">📥 Import CSV</button>
+    <button id="csvExportBtn">📤 Export CSV</button>
+  </div>
 </div>
 
 <script>
+
+// Import the functions you need from the SDKs you need
+import { initializeApp } from "firebase/app";
+import { getAnalytics } from "firebase/analytics";
+// TODO: Add SDKs for Firebase products that you want to use
+// https://firebase.google.com/docs/web/setup#available-libraries
+
+// Your web app's Firebase configuration
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyBTEbC-FWVM5e6Q0UmNhpImEuxX3UicTSM",
+  authDomain: "wishlizzt.firebaseapp.com",
+  projectId: "wishlizzt",
+  storageBucket: "wishlizzt.firebasestorage.app",
+  messagingSenderId: "644927672169",
+  appId: "1:644927672169:web:1d56660a778126ee2a37f8",
+  measurementId: "G-L5J01VKKNX"
+};
+
+// Initialize Firebase
+const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
+
+
 /* ==============================
    Multi-list setup
 ============================== */
@@ -291,30 +369,45 @@ window.onload = () => {
   const savedLists = localStorage.getItem('wishlistLists');
   const savedCurrent = localStorage.getItem('currentList');
 
-  // Load saved lists if they exist
   if (savedLists) {
     lists = JSON.parse(savedLists);
   }
 
   const listNames = Object.keys(lists);
 
-  // ✅ If NO lists exist (any reason), create default list
   if (listNames.length === 0) {
     lists['My List'] = [];
     currentList = 'My List';
     saveLists();
   } else {
-    // Restore current list or fall back safely
-    currentList =
-      savedCurrent && lists[savedCurrent]
-        ? savedCurrent
-        : listNames[0];
+    currentList = savedCurrent && lists[savedCurrent] ? savedCurrent : listNames[0];
   }
 
   renderListSidebar();
   renderWishlist();
+
+  renderWishlist();
+refreshMissingImages();
+normalizeAllSavedLinks();
+
+
 };
 
+function normalizeAllSavedLinks() {
+  let changed = false;
+
+  Object.values(lists).forEach(list => {
+    list.forEach(item => {
+      const fixed = normalizeLink(item.link);
+      if (fixed !== item.link) {
+        item.link = fixed;
+        changed = true;
+      }
+    });
+  });
+
+  if (changed) saveLists();
+}
 
 
 /* ==============================
@@ -322,10 +415,7 @@ window.onload = () => {
 ============================== */
 function createList(name) {
   if (!name) return;
-  if (lists[name]) {
-    alert("List name already exists.");
-    return;
-  }
+  if (lists[name]) { alert("List name already exists."); return; }
   lists[name] = [];
   currentList = name;
   saveLists();
@@ -345,10 +435,7 @@ function deleteList(name) {
 }
 
 function renameList(oldName, newName) {
-  if (!newName || lists[newName]) {
-    alert("Invalid or duplicate list name.");
-    return;
-  }
+  if (!newName || lists[newName]) { alert("Invalid or duplicate list name."); return; }
   lists[newName] = lists[oldName];
   delete lists[oldName];
   if (currentList === oldName) currentList = newName;
@@ -384,16 +471,12 @@ function renderListSidebar() {
     menu.className = 'list-menu';
     menu.textContent = '⋮';
 
-    // ✅ TOOLTIP LOGIC (RESTORED)
     menu.onclick = (e) => {
       e.stopPropagation();
-
-      // Remove any existing tooltip
       document.querySelectorAll('.list-tooltip').forEach(t => t.remove());
 
       const tooltip = document.createElement('div');
       tooltip.className = 'list-tooltip';
-
       tooltip.onclick = (e) => e.stopPropagation();
 
       const renameBtn = document.createElement('button');
@@ -415,7 +498,6 @@ function renderListSidebar() {
       tooltip.appendChild(deleteBtn);
       menu.appendChild(tooltip);
 
-      // Close on outside click (delayed)
       setTimeout(() => {
         document.addEventListener('click', function closeMenu() {
           tooltip.remove();
@@ -430,32 +512,116 @@ function renderListSidebar() {
   }
 }
 
-
-
 document.getElementById('newListBtn').onclick = () => {
   const name = prompt("Enter new list name:");
   if (name) createList(name);
 };
 
 /* ==============================
-   Wishlist logic (unchanged)
+   Wishlist logic
 ============================== */
 function formatPrice(num) {
   return num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+function resolveAmazonImage(asin, callback) {
+  if (!asin) return callback('');
+
+  const candidates = [
+    `https://m.media-amazon.com/images/I/${asin}._AC_UL320_.jpg`,
+    `https://images-na.ssl-images-amazon.com/images/P/${asin}.01._AC_UL320_.jpg`,
+    `https://images-na.ssl-images-amazon.com/images/P/${asin}._AC_UL320_.jpg`
+  ];
+
+  let index = 0;
+
+  function tryNext() {
+    if (index >= candidates.length) {
+      callback('');
+      return;
+    }
+
+    const img = new Image();
+    img.onload = () => callback(candidates[index]);
+    img.onerror = () => {
+      index++;
+      tryNext();
+    };
+    img.src = candidates[index];
+  }
+
+  tryNext();
+}
+
+function refreshMissingImages(delay = 400) {
+  if (!currentList) return;
+
+  const wishlist = lists[currentList];
+  let index = 0;
+
+  function processNext() {
+    if (index >= wishlist.length) {
+      saveLists();
+      renderWishlist();
+      return;
+    }
+
+    const product = wishlist[index++];
+    if (product.imageUrl) {
+      processNext();
+      return;
+    }
+
+    const asinMatch =
+      product.link.match(/\/dp\/([A-Z0-9]{10})/) ||
+      product.link.match(/\/gp\/product\/([A-Z0-9]{10})/);
+
+    if (!asinMatch) {
+      processNext();
+      return;
+    }
+
+    resolveAmazonImage(asinMatch[1], (imgUrl) => {
+      if (imgUrl) product.imageUrl = imgUrl;
+      setTimeout(processNext, delay);
+    });
+  }
+
+  processNext();
+}
+
+function normalizeLink(link) {
+  if (!link) return '';
+
+  link = link.trim().replace(/^"+|"+$/g, '');
+
+  // fix missing colon in https//
+  if (/^https\/\//i.test(link)) {
+    link = link.replace(/^https\/\//i, 'https://');
+  }
+
+  // add protocol if missing
+  if (!/^https?:\/\//i.test(link)) {
+    link = 'https://' + link;
+  }
+
+  return link;
+}
+
+
+
+
 function addProduct(product = null) {
   if (!currentList) return alert("No list selected.");
-
   let link, name, price, quantity;
 
   if (product) {
-    link = product.link;
-    name = product.name;
-    price = product.price;
-    quantity = product.quantity || 1;
-  } else {
-    link = document.getElementById('productLink').value.trim();
+  link = normalizeLink(product.link);
+  name = product.name;
+  price = product.price;
+  quantity = product.quantity || 1;
+  }else {
+  link = normalizeLink(document.getElementById('productLink').value);
     name = document.getElementById('productName').value.trim();
     price = parseFloat(document.getElementById('productPrice').value);
     quantity = parseInt(document.getElementById('productQuantity').value) || 1;
@@ -473,10 +639,21 @@ function addProduct(product = null) {
   if (existing) {
     existing.quantity += quantity;
   } else {
-    const asinMatch = link.match(/\/dp\/([A-Z0-9]{10})/) || link.match(/\/gp\/product\/([A-Z0-9]{10})/);
-    let imageUrl = '';
-    if (asinMatch) imageUrl = `https://images-na.ssl-images-amazon.com/images/P/${asinMatch[1]}._AC_UL320_.jpg`;
-    wishlist.push({ link, name, price, quantity, imageUrl });
+    const asinMatch =
+  link.match(/\/dp\/([A-Z0-9]{10})/) ||
+  link.match(/\/gp\/product\/([A-Z0-9]{10})/);
+
+const productObj = { link, name, price, quantity, imageUrl: '' };
+wishlist.push(productObj);
+
+if (asinMatch) {
+  resolveAmazonImage(asinMatch[1], (imgUrl) => {
+    productObj.imageUrl = imgUrl;
+    saveLists();
+    renderWishlist();
+  });
+}
+;
   }
 
   saveLists();
@@ -498,7 +675,6 @@ function renderWishlist() {
   if (!currentList) return;
 
   const wishlist = lists[currentList];
-
   let totalPrice = 0;
   let totalQty = 0;
 
@@ -506,7 +682,6 @@ function renderWishlist() {
     totalPrice += product.price * product.quantity;
     totalQty += product.quantity;
 
-    // Table row
     const row = document.createElement('tr');
     row.dataset.link = product.link;
 
@@ -515,7 +690,7 @@ function renderWishlist() {
 
     const linkCell = document.createElement('td');
     const a = document.createElement('a');
-    a.href = product.link.startsWith('http') ? product.link : 'https://' + product.link;
+    a.href = product.link;
     a.textContent = "View Product";
     a.target = "_blank";
     linkCell.appendChild(a);
@@ -554,7 +729,6 @@ function renderWishlist() {
     row.appendChild(removeCell);
     tbody.appendChild(row);
 
-    // Preview card
     const previewDiv = document.createElement('div');
     previewDiv.className = 'preview-card';
     previewDiv.dataset.link = product.link;
@@ -578,7 +752,7 @@ function renderWishlist() {
       <div>
         <strong>${product.name}</strong>
         <span>$${formatPrice(product.price)}</span>
-        <a href="${product.link.startsWith('http') ? product.link : 'https://' + product.link}" target="_blank">View</a>
+        <a href="${product.link}" target="_blank">View</a>
       </div>
     `;
     previewDiv.appendChild(qtyDropdown);
@@ -590,52 +764,78 @@ function renderWishlist() {
 }
 
 /* ==============================
-   CSV Import (current list only)
+   CSV Export
 ============================== */
-document.getElementById('importBtn').addEventListener('click', () => {
+document.getElementById('exportBtn').addEventListener('click', () => {
+  if (!currentList || !lists[currentList].length) return alert("No items to export.");
+  const products = lists[currentList];
+  let csvContent = "data:text/csv;charset=utf-8,Name,Price,Link,Quantity\n";
+  products.forEach(p => {
+    csvContent += `"${p.name}","${p.price}","${p.link}","${p.quantity}"\n`;
+  });
+  const encoded = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encoded);
+  link.setAttribute("download", `${currentList}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+});
+
+/* ==============================
+   CSV Import
+============================== */
+document.getElementById('csvFile').addEventListener('change', function () {
   if (!currentList) return alert("No list selected.");
-  const fileInput = document.getElementById('csvFile');
-  const file = fileInput.files[0];
-  if (!file) return alert("Please select a CSV file.");
-
+  const file = this.files[0];
+  if (!file) return;
   const reader = new FileReader();
-  reader.onload = function(e) {
-    const text = e.target.result;
-    const lines = text.split(/\r?\n/).filter(l => l.trim());
-    if (!lines.length) return alert("CSV is empty.");
-
+  reader.onload = (e) => {
+    const lines = e.target.result.split(/\r?\n/).filter(l => l.trim());
+    if (!lines.length) return;
     lines.shift(); // remove header
     lines.forEach(line => {
       const [name, price, link, quantity] = line.split(',');
       if (name && price && link) {
-        addProduct({ name: name.trim(), price: parseFloat(price), link: link.trim(), quantity: parseInt(quantity) || 1 });
+        addProduct({
+          name: name.replace(/"/g,'').trim(),
+          price: parseFloat(price),
+          link: link.replace(/"/g,'').trim(),
+          quantity: parseInt(quantity) || 1
+        });
       }
     });
-
-    fileInput.value = '';
+    this.value = '';
   };
   reader.readAsText(file);
 });
 
 /* ==============================
-   CSV Export (current list only)
+   Floating CSV menu
 ============================== */
-document.getElementById('exportBtn').addEventListener('click', () => {
-  if (!currentList) return alert("No list selected.");
-  let csv = "Name,Price,Link,Quantity\n";
-  lists[currentList].forEach(p => {
-    csv += `"${p.name}",${p.price},"${p.link}",${p.quantity}\n`;
-  });
+const csvMenuBtn = document.getElementById('csvMenuBtn');
+const csvMenuOptions = document.getElementById('csvMenuOptions');
 
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = `${currentList}.csv`;
-  a.click();
-  URL.revokeObjectURL(url);
+csvMenuBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  csvMenuOptions.style.display =
+    csvMenuOptions.style.display === 'block' ? 'none' : 'block';
 });
-</script>
 
+csvMenuOptions.addEventListener('click', e => e.stopPropagation());
+
+document.addEventListener('click', () => {
+  csvMenuOptions.style.display = 'none';
+});
+
+document.getElementById('csvImportBtn').onclick = () => {
+  document.getElementById('csvFile').click();
+};
+
+document.getElementById('csvExportBtn').onclick = () => {
+  document.getElementById('exportBtn').click();
+};
+
+</script>
 </body>
 </html>
