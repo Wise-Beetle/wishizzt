@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 
+<link rel="icon" type="image/png" href="./favicon(32x32).png">
   
 
 <meta charset="UTF-8">
@@ -335,35 +336,25 @@
 </div>
 
 <script>
-
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyBTEbC-FWVM5e6Q0UmNhpImEuxX3UicTSM",
-  authDomain: "wishlizzt.firebaseapp.com",
-  projectId: "wishlizzt",
-  storageBucket: "wishlizzt.firebasestorage.app",
-  messagingSenderId: "644927672169",
-  appId: "1:644927672169:web:1d56660a778126ee2a37f8",
-  measurementId: "G-L5J01VKKNX"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
-
-
 /* ==============================
    Multi-list setup
 ============================== */
 let lists = {}; // { listName: [products] }
 let currentList = null;
+
+function ensureDefaultList() {
+  const listNames = Object.keys(lists);
+
+  if (listNames.length === 0) {
+    lists['My List'] = [];
+    currentList = 'My List';
+    saveLists();
+  } else if (!currentList || !lists[currentList]) {
+    currentList = listNames[0];
+    saveLists();
+  }
+}
+
 
 window.onload = () => {
   const savedLists = localStorage.getItem('wishlistLists');
@@ -373,25 +364,16 @@ window.onload = () => {
     lists = JSON.parse(savedLists);
   }
 
-  const listNames = Object.keys(lists);
+  currentList = savedCurrent;
 
-  if (listNames.length === 0) {
-    lists['My List'] = [];
-    currentList = 'My List';
-    saveLists();
-  } else {
-    currentList = savedCurrent && lists[savedCurrent] ? savedCurrent : listNames[0];
-  }
+  ensureDefaultList();   // 👈 guarantees a list exists
 
   renderListSidebar();
   renderWishlist();
-
-  renderWishlist();
-refreshMissingImages();
-normalizeAllSavedLinks();
-
-
+  refreshMissingImages();
+  normalizeAllSavedLinks();
 };
+
 
 function normalizeAllSavedLinks() {
   let changed = false;
@@ -426,13 +408,14 @@ function createList(name) {
 function deleteList(name) {
   if (!lists[name]) return;
   if (!confirm(`Delete list "${name}"? This cannot be undone.`)) return;
+
   delete lists[name];
-  const remaining = Object.keys(lists);
-  currentList = remaining[0] || null;
+  ensureDefaultList();   // 👈 auto-create default if last list was deleted
   saveLists();
   renderListSidebar();
   renderWishlist();
 }
+
 
 function renameList(oldName, newName) {
   if (!newName || lists[newName]) { alert("Invalid or duplicate list name."); return; }
