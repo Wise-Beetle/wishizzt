@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 
-<link rel="icon" type="image/png" href="/Favicon-32.png">
+<link rel="icon" type="image/png" href="./favicon(32x32).png">
   
 
 <meta charset="UTF-8">
@@ -749,55 +749,89 @@ function renderWishlist() {
 /* ==============================
    CSV Export
 ============================== */
-document.getElementById('exportBtn').addEventListener('click', () => {
-  if (!currentList || !lists[currentList].length) return alert("No items to export.");
-  const products = lists[currentList];
-  let csvContent = "data:text/csv;charset=utf-8,Name,Price,Link,Quantity\n";
-  products.forEach(p => {
-    csvContent += `"${p.name}","${p.price}","${p.link}","${p.quantity}"\n`;
-  });
-  const encoded = encodeURI(csvContent);
-  const link = document.createElement("a");
-  link.setAttribute("href", encoded);
-  link.setAttribute("download", `${currentList}.csv`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-});
 
-/* ==============================
-   CSV Import
-============================== */
+console.log("CSV IMPORT SCRIPT LOADED");
+
+
 document.getElementById('csvFile').addEventListener('change', function () {
-  if (!currentList) return alert("No list selected.");
+  if (!currentList) {
+    alert("No list selected.");
+    return;
+  }
+
   const file = this.files[0];
   if (!file) return;
+
   const reader = new FileReader();
+
   reader.onload = (e) => {
-    const lines = e.target.result.split(/\r?\n/).filter(l => l.trim());
-    if (!lines.length) return;
-    lines.shift(); // remove header
+    let text = e.target.result
+      .replace(/\uFEFF/g, '') // remove BOM
+      .trim();
+
+    let lines = text.split(/\r?\n/);
+    if (lines.length <= 1) return;
+
+    // Remove header row
+    lines.shift();
+
     lines.forEach(line => {
-      const [name, price, link, quantity] = line.split(',');
-      if (name && price && link) {
-        addProduct({
-          name: name.replace(/"/g,'').trim(),
-          price: parseFloat(price),
-          link: link.replace(/"/g,'').trim(),
-          quantity: parseInt(quantity) || 1
-        });
+      // Proper CSV parsing (handles commas safely)
+      const cols = [];
+      let current = '';
+      let insideQuotes = false;
+
+      for (let char of line) {
+        if (char === '"' ) {
+          insideQuotes = !insideQuotes;
+        } else if (char === ',' && !insideQuotes) {
+          cols.push(current);
+          current = '';
+        } else {
+          current += char;
+        }
       }
+      cols.push(current);
+
+      let [name, price, link, quantity] = cols.map(v =>
+        v.replace(/^"+|"+$/g, '').trim()
+      );
+
+      // Fix common CSV issues
+      price = parseFloat(price.replace(/[^0-9.]/g, ''));
+      quantity = parseInt(quantity) || 1;
+      link = normalizeLink(link);
+
+      if (!name || !link || isNaN(price)) {
+        console.warn("Skipped row:", line);
+        return;
+      }
+
+      addProduct({
+        name,
+        price,
+        link,
+        quantity
+      });
     });
-    this.value = '';
+
+    saveLists();
+    renderWishlist();
   };
+
   reader.readAsText(file);
 });
+
+
+
 
 /* ==============================
    Floating CSV menu
 ============================== */
 const csvMenuBtn = document.getElementById('csvMenuBtn');
 const csvMenuOptions = document.getElementById('csvMenuOptions');
+
+
 
 csvMenuBtn.addEventListener('click', (e) => {
   e.stopPropagation();
@@ -812,7 +846,9 @@ document.addEventListener('click', () => {
 });
 
 document.getElementById('csvImportBtn').onclick = () => {
-  document.getElementById('csvFile').click();
+  const input = document.getElementById('csvFile');
+  input.value = null;
+  input.click();
 };
 
 document.getElementById('csvExportBtn').onclick = () => {
