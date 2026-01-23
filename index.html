@@ -747,7 +747,7 @@ function renderWishlist() {
 }
 
 /* ==============================
-   CSV Export
+   CSV Import
 ============================== */
 
 console.log("CSV IMPORT SCRIPT LOADED");
@@ -845,15 +845,63 @@ document.addEventListener('click', () => {
   csvMenuOptions.style.display = 'none';
 });
 
-document.getElementById('csvImportBtn').onclick = () => {
-  const input = document.getElementById('csvFile');
-  input.value = null;
-  input.click();
-};
+document.getElementById('exportBtn').addEventListener('click', async () => {
+  if (!currentList || !lists[currentList] || !lists[currentList].length) {
+    alert("No items to export.");
+    return;
+  }
+
+  const products = lists[currentList];
+
+  let csvContent = "Name,Price,Link,Quantity\n";
+  products.forEach(p => {
+    csvContent += `"${p.name}","${p.price}","${p.link}","${p.quantity}"\n`;
+  });
+
+  // Modern Save dialog
+  if ('showSaveFilePicker' in window) {
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: `${currentList}.csv`,
+        types: [{
+          description: 'CSV File',
+          accept: { 'text/csv': ['.csv'] }
+        }]
+      });
+
+      const writable = await handle.createWritable();
+      await writable.write(csvContent);
+      await writable.close();
+    } catch {
+      // user cancelled
+    }
+  } 
+  // Fallback for Safari / Firefox
+  else {
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${currentList}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
+});
+
 
 document.getElementById('csvExportBtn').onclick = () => {
   document.getElementById('exportBtn').click();
 };
+
+document.getElementById('csvImportBtn').onclick = () => {
+  const input = document.getElementById('csvFile');
+  input.value = null; // allow re-importing same file
+  input.click();
+};
+
 
 </script>
 </body>
